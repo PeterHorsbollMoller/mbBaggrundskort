@@ -1,0 +1,16 @@
+!table
+!version 300
+!charset WindowsLatin1
+
+Definition Table
+  Type NATIVE Charset "WindowsLatin1"
+  Fields 4
+    DBfilnavnID Char (2) ;
+    DBfilnavn Char (50) ;
+    SubMenuNavn Char (35) ;
+    DBFilType Char (3) ;
+begin_metadata
+"\IsReadOnly" = "FALSE"
+"\MapInfo" = ""
+"\MapInfo\TableID" = "72824d98-123e-4003-bf72-8d2aaf7bec03"
+end_metadata

@@ -1,0 +1,23 @@
+!table
+!version 300
+!charset WindowsLatin1
+
+Definition Table
+  Type NATIVE Charset "WindowsLatin1"
+  Fields 11
+    ID Char (3) Index 1 ;
+    DBnavn Char (50) ;
+    DBbeskrivelse Char (254) ;
+    DBmål Integer ;
+    DBkategori Char (25) ;
+    DBkorttypeGruppe Char (25) ;
+    DBnetvaerkssti Char (200) ;
+    DBfilnavnID Char (50) ;
+    DBMenuType Logical ;
+    DBGrupLag Logical ;
+    ErSkaereObj Logical ;
+begin_metadata
+"\IsReadOnly" = "FALSE"
+"\MapInfo" = ""
+"\MapInfo\TableID" = "854de9a1-42b7-4da7-a9b1-26f057613101"
+end_metadata

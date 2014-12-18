@@ -1,0 +1,722 @@
+'*********************************************************************
+'	Program, der laver et menupunkt med forskellige baggrundskort
+'	Udviklet af:
+'    Niels Lundbye-Christensen, 2011
+'    Poul Juul Hansen, 2014: Inifil erstattet af 2 MapInfo tabeller for
+'    håndtering af kortværker; til håndtering af flere filer i et kortværk
+'*********************************************************************
+
+Define xProgram "Håndtering af baggrundskort"
+Define xProgramName "Baggrundskort_v2"
+Define xVersion "2.02, Build:1812-2014"
+
+Type TableSpecs
+	Id As String
+	MasterName As String
+	MasterBeskrivelse As String
+	MasterKategori As String
+	MasterKortType As String
+	MasterScale As Integer
+	sPath As String
+	SubID As String
+	SubMenu As Logical
+	IsGroup As Logical
+	SubFileName As String
+	SubFileNameAlias As String
+	SubFileType As String
+	MenuId As Integer
+End Type 'Benyttes til at lagre info om opsætningstabellernes data
+
+Type BrowseInfo
+	hWndOwner As integer
+	pIDLRoot As integer
+	pszDisplayName As integer
+	lpszTitle As integer
+	ulFlags As integer
+	lpfnCallback As integer
+	lParam As integer
+	iImage As integer
+End Type 'Benyttes til
+
+Dim OpenMap as Integer			'Antallet åbne kortvinduer
+Dim msGroupLayerName as String		'Baggrundskortets grouplayer-navn
+Dim nGroupLayers as Integer		'Antallet groupLayers i kortet
+Dim msNameBaggrund as String		'Baggrundstabellens "kosmetiske" navn
+Dim msNamelayer as String			'Baggrundstabellens tabelnavn
+Dim BibliotekLayer as String		'Baggrundstabellens bibliotek-placering
+Dim msNamelayerOld as String		'Navn på den baggrundstabel, som skal lukkes
+Dim ll as Integer				'Anvendes som Group_layer_id i sub-funktionen GroupTjek
+Dim i as Integer
+Dim llOffset as Integer
+Dim marrTabFiles() As String
+Dim marrAliases() As String
+Dim msSubMenus As String
+Dim TableInformation() as TableSpecs
+
+Declare Sub main
+Declare Function MENUAddToUserInterface(ByVal nElement As Integer) As Logical
+Declare Sub OpenMapDefinitions
+Declare Sub MENUMenuItemsClicked
+Declare Sub MENUButtonClicked
+Declare Sub ReadMapDefinitions
+Declare Sub OpenSelectedMap(ByVal MapId as string)
+Declare Function CheckForOpenMapWindow() As Logical	 'Change: If no maps is open then Create a New mapper window
+Declare Sub About
+Declare Sub CloseApp
+Declare Sub MapCut
+Declare Sub ToolbutPad
+Declare Sub CoTaskMemFree Lib "ole32.dll" (ByVal hMem As Integer)
+Declare Function SHBrowseForFolder Lib "shell32" (lpbi As BrowseInfo) As Integer
+Declare Function GetActiveWindow Lib "User32" () as Integer
+Declare Function SHGetPathFromIDList Lib "shell32" (ByVal pidList As Integer, lpBuffer As String) As Integer
+Declare Function GetFolderPath(sOutPath as string) as integer
+Declare Sub GetDirectory()
+Declare Function CreateDirectory Lib "kernel32" Alias "CreateDirectoryA"
+		( ByVal s_pathname as String
+		, ByVal i_SecurityAttributes as Integer
+		) As Integer
+
+Dim RemoteMsgVal As Integer
+
+Include "Menu.def"
+Include "MapBasic.def"
+Include "Icons.def"
+Include "Library\TableLib.def"
+Include "Library\FILElib.def"
+Include "Library\Types\T_LABEL_SETTINGS.def"
+Include "Library\Types\T_LAYER_SETTINGS.def"
+Include "Library\Types\T_LAYER_INFO.def"
+Include "Library\Types\T_GROUP_LAYER_INFO.def"
+Include "Library\LAYERlib.def"
+Include "Library\ERRORLib.def"
+Include "Library\GroupLayerLib.def"
+Include "Library\STYLElib.def"
+Include "Library\Stringlib.def"
+Include "Library\DEBUGlib.def"
+
+'---------------------------------------------------------------------------------
+'    Main program body
+'    (QA 01-08-2014)
+'---------------------------------------------------------------------------------
+Sub Main
+Dim	nItem As Integer
+
+	Call OpenMapDefinitions 'Read MapperInformation in MapperSetupTables
+
+'--- Create all menues
+	For i = 1 to Ubound(TableInformation)
+		nItem = i
+		If Not MenuAddToUserInterface(nItem) Then
+		End IF
+	Next
+
+	Alter Menu "Baggrundskort" Add 'Tilføje de afsluttende menupunkter til menubaren
+		"(-",
+		"Klip kort ud..." Calling MapCut,
+		"(-",
+		"Luk Baggrundskort" Calling CloseApp,
+		"(-",
+		"OM Baggrundskort" Calling About
+
+	Alter Menu Bar Add "Baggrundskort"
+
+	msNamelayer 		= "ingen"
+	msNamelayerOld		= "ingen"
+	msGroupLayerName	= "Baggrundskort"
+
+	Call ToolButPad
+
+End Sub
+
+'******************************************************************************
+'   Sub som skaber værktøjslinjen
+'   Version 2.01 (01-08-2014)
+'******************************************************************************
+Sub ToolbutPad
+
+Dim sPath As String
+Dim i_success As integer
+
+	'Set Format Number "Local"
+	'Sæt koordinatsystemet til UTM, EUREF89
+	Set Coordsys Earth Projection 8, 115, 7, 9.0, 0, 0.9996, 500000, 0
+
+	Set Window Message
+  		Position (5.2, 2.24) Width 6 Height 1.4
+  		Title "Vigtigt..."
+
+	Print chr$(12)
+
+	'Byg en værktøjslinie med 4 knapper
+	Create ButtonPad xProgramName ID 5 As 'PJH: Angiv applikationens navn i "Applikationsnavn"
+		Pushbutton
+			HelpMsg "Skær data ud i tabeller ud fra vinduesbredden\nSkærData"
+			Calling MapCut 'Subprocedure
+			Icon MI_ICON_CUT 'Button face
+			Id 1001
+		Separator
+		Pushbutton
+			HelpMsg "Luk " + xProgramName + "...\nLuk " + xProgramName 'PJH: Angiv applikationens navn i "Applikationsnavn"
+			Calling CloseApp 'Subprocedure
+			Icon MI_ICON_MB_13 'Button face
+			Id 1002
+		Separator
+		Pushbutton
+			HelpMsg "Om " + xProgramName + "...\nOm " + xProgramName 'PJH: Angiv applikationens navn i "Applikationsnavn"
+			Calling About 'Subprocedure
+			Icon MI_ICON_MB_10 'Button face
+			Id 1003
+		Show
+		'Title  'PJH: Angiv applikationens navn i "Applikationsnavn"
+		Fixed
+
+    '**Create a folder structure - will create the entire path given
+	sPath = GetFolderPath$(FOLDER_MYDOCS) & "\klipkortlag\"
+ 	If NOT FileISFolder(sPath) Then
+		i_success = CreateDirectory(sPath, 0)
+		If i_success = 0 Then
+			Note "Biblioteket " & sPath & " kunne ikke oprettes. Tjek at du har rettigheder til at oprette mappen"
+			End Program
+		End If
+	End If
+
+End Sub
+
+'******************************************************************************
+'   Procedure med programmets basisfunktionalitet
+'   STATUS: (QA 31-07-2014)
+'******************************************************************************
+Sub MapCut
+
+Dim arrTab(0) As String
+Dim Succes As Integer
+Dim i, nTbl As Integer
+Dim CutObj As Object
+Dim TblNme, cmdString As String
+Dim tblNmeObj As Alias
+Dim ExpToDWG, Answer As Logical
+Dim ObjAlias As Alias
+Dim sCurDir As String
+Dim test As Integer
+Dim xMin, xMax, yMin, yMax As float
+
+	OnError Goto ErrHandlerOpenTable
+'List alle åbne tabeller i array'en arrTab (og Succes indeholder logisk svar på resultatet af anmodningen)
+	Succes = TABGetListOfNames(TAB_USE_ALL, arrTab)
+	If Succes < 1 Then
+		Note "Der er ingen tabeller åben...!"
+		Exit Sub
+	End If
+
+'Læs hjørnekoordinater ud af kortvinduet og skriv et objekt til at klippe med
+'Tjek først at de aktive vindue er et kortvindue og at der er åbne filer
+	If Not WindowInfo(Frontwindow(), WIN_INFO_TYPE) = WIN_MAPPER Then
+		Note "Det aktive vindue er ikke et kortvindue. Vælg et kortvindue og prøv igen..."
+		Exit Sub
+	End If
+
+	Answer = ASK("Vil du gemme udklippede data i en Sagsmappe?", "Ja", "Nej")
+
+	If Answer = TRUE Then
+		test = GetFolderPath(sCurDir)
+	Else
+		Exit Sub
+		'sCurDir = "C:\mapinfo\klipkortlag\"
+	End If
+
+	sCurDir = FILEAddBackSlash(sCurDir)
+
+	If Selectioninfo(SEL_INFO_NROWS) = 1 Then
+		ObjAlias = SelectionInfo(SEL_INFO_SELNAME) + ".Obj"
+		If ObjectInfo(ObjAlias, OBJ_INFO_TYPE) = 7 Then '7=Region Object (OBJ_TYPE_REGION)
+			Answer = ASK("Der er valgt et objekt i kortvinduet. " & chr$(10) &
+									 "Vil du bruge dette objekt til som klippeobjekt?" & chr$(10) &
+									 "Vælg Nej for at at bruge kortvinduet som afgrænsning", "Ja", "Nej")
+			If Answer = True Then
+				CutObj = ObjAlias
+			Else
+				xMin = MapperInfo(Frontwindow(), MAPPER_INFO_MINX)
+				yMax = MapperInfo(Frontwindow(), MAPPER_INFO_MAXX)
+				yMin = MapperInfo(Frontwindow(), MAPPER_INFO_MINY)
+				yMax = MapperInfo(Frontwindow(), MAPPER_INFO_MAXY)
+				Create Region Into variable CutObj 0
+				Alter Object CutObj node Add (xMin, yMin)
+				Alter Object CutObj node Add (xMax, yMin)
+				Alter Object CutObj node Add (xMax, yMax)
+				Alter Object CutObj node Add (xMin, yMax)
+				Alter Object CutObj node Add (xMin, yMin)
+			End If
+		End IF
+	Else
+		xMin = MapperInfo(Frontwindow(), MAPPER_INFO_MINX)
+		yMax = MapperInfo(Frontwindow(), MAPPER_INFO_MAXX)
+		yMin = MapperInfo(Frontwindow(), MAPPER_INFO_MINY)
+		yMax = MapperInfo(Frontwindow(), MAPPER_INFO_MAXY)
+		Create Region Into variable CutObj 0
+		Alter Object CutObj node Add (xMin, yMin)
+		Alter Object CutObj node Add (xMax, yMin)
+		Alter Object CutObj node Add (xMax, yMax)
+		Alter Object CutObj node Add (xMin, yMax)
+		Alter Object CutObj node Add (xMin, yMin)
+	End If
+
+	'Løkke som løber gennem alle åbne tabeller, udvælger og gemmer
+	nTbl = UBound(arrTab)
+	'Print chr$(12)
+	For i = 1 To nTbl
+		'Tjek at laget/databasen er et med vektordata
+		TblNme = arrTab(i)
+		If TableInfo(tblNme, TAB_INFO_TYPE) = TAB_TYPE_BASE Then
+			'Udvælg objekter og gem i SelObj midlertidig tabel
+			'Tjek først om SelObj er åben; hvis så luk
+			If TabIsOpen("SelObj") Then
+				Close table SelObj
+			End If
+			select * from tblNme where Obj intersects cutObj into SelObj NoSelect 'Gem de udvalgte rækker
+			If TableInfo(SelObj, TAB_INFO_NROWS) > 0 Then
+				Commit table SelObj 	'Filnavn +"_udsnit" i mapCut_lib
+					As sCurDir + tblNme + "_udsnit" Type Native
+			End If
+		End If
+	Next
+
+	If TabIsOpen("SelObj") Then 'Cleaning up
+		Close table SelObj
+	End If
+
+	Exit Sub
+
+ErrhandlerOpenTable:
+	Call ERRCreate(Err(), Error$(), "MapCut")
+	Call ERRShow()
+
+End Sub
+
+'***************************************************************************************************
+'*Function: GetFolderPath
+'*Uses SHBrowseforFolderAPI to bring up windows-style dialog for selecting directories
+'*(QA 01-08-2014)
+'***************************************************************************************************
+Function GetFolderPath(sOutPath as string) as integer
+
+Dim iNull As Integer
+Dim lpIDList As Integer
+Dim lResult As Integer
+Dim sPath As String
+Dim BI As BrowseInfo
+Dim retval as integer
+
+	OnError Goto HandleError
+
+	'Set MapInfo as the Owner
+	BI.hWndOwner = GetActiveWindow() 'Return only if the user selected a directory
+	BI.ulFlags = 1
+	lpIDList = SHBrowseForFolder(BI) 'Show the Browse for folder dialog
+	If lpIDList Then
+		sPath = String$(260, " ")
+		lResult = SHGetPathFromIDList(lpIDList, sPath) 'Get the path from the IDList
+		Call CoTaskMemFree(lpIDList) 'free the block of memory
+		sPath = ltrim$(rtrim$(sPath))
+	End If
+
+	sOutPath = sPath
+	GetFolderPath = 0
+	Exit Function
+
+	HandleError:
+	Note Error$()
+	GetFolderPath = Err()
+
+End Function
+
+'---------------------------------------------------------------------------------
+' PJH: Read MapDefinitions
+' Status: (QA 01-08-2014)
+' NOTE: Remember to Close tables when done!
+'---------------------------------------------------------------------------------
+Sub OpenMapDefinitions
+Dim AppPath, sID, sMenuName, sSubMenu, sTabFilePath, sTabFile, sDescription, sTabNameId, sTabType As String,
+	lIsborder, lSubMenu, lIsGroupLayer as Logical,
+	nItem, iMasterScale As Integer
+
+	AppPath = ApplicationDirectory$()
+	If Not TabIsOpen("BGK_kort_DB") Then
+		Open Table AppPath & "BGK_kort_DB" Hide ReadOnly
+	Else
+		If TAbleInfo( BGK_kort_DB, TAB_INFO_EDITED ) Then
+			Commit table BGK_kort_DB
+		End If
+		Close table BGK_kort_DB
+		Open Table AppPath & "BGK_kort_DB" Hide ReadOnly
+	End If
+	If Not TabIsOpen("BGK_Filnavne_DB") Then
+		Open Table AppPath & "BGK_Filnavne_DB" Hide ReadOnly
+	Else
+		If TAbleInfo( BGK_Filnavne_DB, TAB_INFO_EDITED ) Then
+			Commit table BGK_Filnavne_DB
+		End If
+		Close table BGK_Filnavne_DB
+		Open Table AppPath & "BGK_Filnavne_DB" Hide ReadOnly
+	End If
+
+	Select * from BGK_kort_DB Order By Id Into SortBGK_kort_DB
+	Fetch First from SortBGK_kort_DB
+	nItem = 1
+'--- TableInformation with database information --------------------------
+	Do While Not EOT(SortBGK_kort_DB)
+		sId = SortBGK_kort_DB.ID
+		lSubMenu = SortBGK_kort_DB.DBMenuType			'lSubMenu
+		sSubMenu = SortBGK_kort_DB.DBNavn
+		sTabFilePath = SortBGK_kort_DB.DBnetvaerkssti 'Absolut path to sTabFile
+		sTAbNameID = SortBGK_kort_DB.DBfilnavnID
+		iMasterScale = SortBGK_kort_DB.DBmål
+		sDescription = SortBGK_kort_DB.DBbeskrivelse & " (" &
+									 SortBGK_kort_DB.DBKategori & "/" & SortBGK_kort_DB.DBkorttypeGruppe & ")"
+		lIsGroupLayer = SortBGK_kort_DB.DBGrupLag
+
+		Select * From BGK_Filnavne_DB Where DBfilnavnID = sTabNameId Order By SubMenuNavn Into SubSelBGK_Filnavne_DB
+		Fetch First from SubSelBGK_Filnavne_DB
+		If lSubMenu Then 'IF menu is submenu Then find corresponding file names
+			Do While NOT EOT(SubSelBGK_Filnavne_DB)
+				sMenuName = SubSelBGK_Filnavne_DB.SubMenuNavn
+				sTabFile = SubSelBGK_Filnavne_DB.DBfilnavn
+				sTabType = SubSelBGK_Filnavne_DB.DBFilType
+				ReDim TableInformation(nItem)
+				TableInformation(nItem).Id = sId
+				TableInformation(nItem).MasterName = sSubMenu
+				TableInformation(nItem).MasterBeskrivelse = sDescription
+				TableInformation(nItem).MasterKategori = ""
+				TableInformation(nItem).MasterKortType = ""
+				TableInformation(nItem).MasterScale = iMasterScale
+				TableInformation(nItem).sPath = sTabFilePath
+				TableInformation(nItem).SubID = sTabNameID
+				TableInformation(nItem).SubMenu =  lSubMenu
+				TableInformation(nItem).IsGroup = lIsGroupLayer
+				TableInformation(nItem).SubFilename = sTabFile
+				TableInformation(nItem).SubFileNameAlias = sMenuName
+				TableInformation(nItem).SubFileType = sTabType
+				TableInformation(nItem).MenuID = nItem
+				nItem = nItem + 1
+				Fetch Next From SubSelBGK_Filnavne_DB
+			Loop
+		Else 'NOT submenu then ONLY one entry in TableInformation
+			sTabFile = SubSelBGK_Filnavne_DB.DBfilnavn
+			ReDim TableInformation(nItem)
+			sTabType = SubSelBGK_Filnavne_DB.DBFilType
+			TableInformation(nItem).Id = sId
+			TableInformation(nItem).MasterName = sSubMenu
+			TableInformation(nItem).MasterBeskrivelse = sDescription
+			TableInformation(nItem).MasterKategori = ""
+			TableInformation(nItem).MasterKortType = ""
+			TableInformation(nItem).MasterScale = iMasterScale
+			TableInformation(nItem).sPath = sTabFilePath
+			TableInformation(nItem).SubID = sTabNameID
+			TableInformation(nItem).SubMenu =  lSubMenu
+			TableInformation(nItem).IsGroup = lIsGroupLayer
+			TableInformation(nItem).SubFileName = sTabFile
+			TableInformation(nItem).SubFileNameAlias = ""
+			TableInformation(nItem).SubFileType = sTabType
+			TableInformation(nItem).MenuID = nItem
+			nItem = nItem + 1
+		End If
+		If TabIsOpen("SubSelBGK_Filnavne_DB") Then
+			Close Table SubSelBGK_Filnavne_DB
+		End If
+		Fetch Next from SortBGK_kort_DB
+	Loop
+	If TabIsOpen("SortBGK_kort_DB") Then
+		Close table SortBGK_kort_DB
+	End If
+End Sub
+
+'---------------------------------------------------------------------------------
+' PJH: Add Menuitem to user interface
+' Status: (QA 01-08-2014)
+'---------------------------------------------------------------------------------
+Function MENUAddToUserInterface(ByVal nElement As Integer) As Logical
+
+Dim	sIconFile, sIcon, sSubMenu, sMenuName As String,
+	  nCount, nIcon, i As Integer,
+	  lIsSubMenu As Logical
+
+	MENUAddToUserInterface	= FALSE
+
+	If TableInformation(nElement).SubMenu Then
+		sMenuName = TableInformation(nElement).SubFileNameAlias
+		sSubMenu = TableInformation(nElement).MasterName
+	Else
+		sMenuName = TableInformation(nElement).MasterName
+		sSubMenu = "" 'TableInformation(nElement).MasterName
+	End If
+
+	If sSubMenu = "" Then'**Using this as the default menu
+		sSubMenu = "Baggrundskort"
+	End If
+
+	nCount = TableInformation(nElement).MenuID
+
+	If sMenuName = "SEPARATOR" Then 'Alter Buttonpad "Baggrundskort" Add Separator
+		If nCount > 0 Then
+			If InStr(1, msSubMenus, UCase$(sSubMenu)) > 0 Then
+				Alter Menu sSubMenu Add "(-"
+			End If
+		End If
+	Else
+		If InStr(1, msSubMenus, UCase$(sSubMenu)) > 0 Then
+			Alter Menu sSubMenu Add
+				sMenuName
+				ID (10000 + nCount)
+				Calling MENUMenuItemsClicked
+		Else
+			Create Menu sSubMenu As
+				sMenuName
+				ID (10000 + nCount)
+				Calling MENUMenuItemsClicked
+			msSubMenus = msSubMenus & UCase$(sSubMenu) & ";"
+			If InStr(1, msSubMenus, "BAGGRUNDSKORT") > 0 Then
+				If sSubMenu <> "Baggrundskort" Then
+					Alter Menu "Baggrundskort"
+						Add sSubMenu As sSubMenu
+				End If
+			Else
+				If sSubMenu <> "Baggrundskort" Then
+					Create Menu "Baggrundskort" As
+						sSubMenu As sSubMenu
+					msSubMenus = msSubMenus & UCase$("Baggrundskort") & ";"
+				End If
+			End If
+		End If
+	End If
+
+	MENUAddToUserInterface = TRUE
+
+End Function
+
+'---------------------------------------------------------------------------------
+' PJH: Open Userselected map
+' Status: (QA 01-08-2014)
+'---------------------------------------------------------------------------------
+Sub MENUMenuItemsClicked
+Dim	nMenuItem, nMapItem  As Integer,
+		DBnID As string
+
+	nMenuItem	= CommandInfo(CMD_INFO_MENUITEM)
+	nMapItem	= (nMenuItem - 10000)
+	Call OpenSelectedMap(nMapItem)
+
+End Sub
+
+'---------------------------------------------------------------------------------
+'  PJH: OpenMaps based on user choise from menu
+'  Status: (QA 01-08-2014)
+'---------------------------------------------------------------------------------
+Sub OpenSelectedMap(ByVal MapId as string)						'Generel funktion, der åbner for det ønskede baggrundskort. Anvender værdier fra sub1,sub2 osv.
+Dim PathToMaps, sDBnavn, sDBaliasName, MapParentID, AppPath, sFileName, sFileType as String,
+	lIsGLayer, lIsMapperOpen, lIsSubMenu As Logical,
+	nGroupLayers, nItems, nWinID, nNewGLYRID, nPosition, nLayers, nmRows, MenuElement, iMapScale As Integer,
+	arrGLayers() As T_LAYER_INFO,
+	xCenter, yCenter, MapScale As Float,
+	cPoint As Object,
+	cSymbol As Symbol
+
+	AppPath = ApplicationDirectory$()
+	OnError Goto ErrHandlerOpenTable
+
+'---If not map window open then create a new window with a temporary map --------
+	If Not CheckForopenMapWindow() Then
+		If NOT TabIsOpen("Setup") Then
+			AppPath = ApplicationDirectory$()
+			Open Table AppPath + "Setup" Hide ReadOnly
+			Select * From Setup Where Entry = "CenterX" Into SelSetup
+			xCenter = Val(SelSetup.Value)
+			Close table SelSetup
+			Select * From Setup Where Entry = "CenterY" Into SelSetup
+			yCenter = Val(SelSetup.Value)
+			Close table SelSetup
+			Select * From Setup Where Entry = "NewMapScale" Into SelSetup
+			Mapscale = Val(SelSetup.Value)
+			Close table "Setup"
+			'Print xCenter & ", " & yCenter
+		End If
+		Create Table TEMP_MyMapWindowTable ( ID Char(1))
+			File AppPath + "TEMP_MyMapWindowTable" Type Native
+		Create Map
+			For TEMP_MyMapWindowTable
+				Coordsys Earth Projection 8, 115, 7, 9.0, 0, 0.9996, 500000, 0
+		cSymbol = MakeSymbol( 31, RED, 10)
+		Create point
+			Into Variable cPoint
+			(xCenter, yCenter)
+			Symbol cSymbol
+
+		Insert Into TEMP_MyMapWindowTable (Obj)
+			Values ( cPoint )
+
+		Map From TEMP_MyMapWindowTable 'Create mapper window for the first map
+		nWinID = WindowID(FrontWindow())
+		Set coordsys Earth Projection 8, 115, 7, 9.0, 0, 0.9996, 500000, 0
+		Set Map Window nWinID
+			Center ( xCenter, yCenter )
+	Else
+		nWinID = WindowID(FrontWindow())
+	End If
+'---Read Record from Type:TableInformation--------------------------------------------
+	MenuElement = TableInformation(MapID).MenuID
+	lIsGlayer = TableInformation(MapID).IsGroup
+	MapParentID = TableInformation(MapID).SubId
+	PathToMaps = TableInformation(MapID).sPath
+	sDBnavn = TableInformation(MapID).MasterName
+	lIsSubMenu = TableInformation(MapID).SubMenu
+	sFileName = TableInformation(MapID).SubFileName
+	sFileType = TableInformation(MapID).SubFileType
+	iMapScale = TableInformation(MapID).MasterScale
+
+	If Not TabIsOpen("BGK_Filnavne_DB") Then
+		Open Table AppPath & "BGK_Filnavne_DB" ReadOnly Hide
+	End If
+
+	If sFileType = "WOR" Then 'Workspace file opens in a new window
+		Run Command "Run Application " & Chr$(34) & PathToMaps & sFileName & ".wor" & Chr$(34)
+	Else
+		If Not lIsSubMenu Then
+			Select * from BGK_Filnavne_DB Where DBfilnavnID = MapParentID Into SubselFilDB
+			'nmRows = TableInfo(SubselFilDB, TAB_INFO_NROWS) 'New tables to open
+			nItems=0
+			Fetch First from SubselFilDB
+			Do While NOT EOT(SubselFilDB) ' First open all tables for user selected map; Add layer names to arrGlayers array
+				nItems = nItems + 1
+				BibliotekLayer = PathToMaps & SubSelFilDB.DBfilnavn
+				msNameLayer = PathToTableName$(SubselFilDB.dBfilnavn) 'tab navn
+				sDBaliasName = SubSelFilDB.SubMenuNavn
+				If sDBaliasName <> "" Then 'Værdi i SubMenuNavn benyttes som tabel alias navn
+					msNameLayer = PathToTableName$(sDBaliasName)
+
+				End If
+				If Not TabIsOpen(msNameLayer) Then
+					Open Table BibliotekLayer As msNamelayer Interactive
+				End If
+				Redim arrGLayers(nItems)
+				arrGLayers(nItems).sName = msNameLayer
+				Fetch Next From SubselFilDB
+			Loop
+		Else
+			BibliotekLayer =  PathToMaps & sFileName
+			msNameLayer = PathToTableName$(TableInformation(MapId).SubFileNameAlias)
+			If Not TabIsOpen(msNameLayer) Then
+				Open Table BibliotekLayer As PathToTableName$(msNamelayer) Interactive
+			End If
+		End If
+
+		IF CheckForOpenMapWindow() Then '--- Create Group layer or not ---------------------
+			nWinID = WindowID(FrontWindow())
+			If lIsGLayer Then
+				nPosition = GLYRGetPositionInGroupLayer(nWinID, 0, sDBnavn)
+				If nPosition = -1 Then
+	   				nNewGLYRID = GLYRCreateGroupLayer(nWinID, sDBnavn, "", arrGLayers())
+				End if
+			Else 'Not a group layer
+				If Not LAYERExists(	nWinId, msNameLayer ) Then
+					Add map Window nWinID Auto
+						Layer msNameLayer
+				End If
+			End If
+		Else
+			Note "Vælg/aktiver et kortvindue, som du vil åbne kortene i..."
+		End If
+
+	End IF
+
+	If LayerExists( nWinID, "TEMP_MyMapWindowTable" ) Then '---Now Close TEMP_MyMapWindowTable -----------------
+		Close Table "TEMP_MyMapWindowTable"
+	End If
+	If CheckForopenMapWindow() Then 'Frontwindow is a WIN_MAPPER
+		nWinID = WindowID(FrontWindow())
+		Set Map Window nWinID
+			Distance Units "m"
+		If iMapScale > 100 Then
+			Set Map Window nWinID
+				Scale 1 Units "m" For iMapScale Units "m"
+		End If
+'		If TabIsOpen("SubselFilDB") Then
+'			Close table SubselFilDB
+'		End If
+	End If
+
+	If TabIsOpen("TEMP_MyMapWindowTable") Then
+		Close table "TEMP_MyMapWindowTable"
+	End If
+
+	If TabIsOpen("SubselFilDB") Then
+		Close table SubselFilDB
+	End If
+
+	Exit Sub
+
+ErrhandlerOpenTable:
+	Call ERRCreate(Err(), Error$(), "OpenSelectedMap")
+	Call ERRShow()
+End Sub
+
+'---------------------------------------------------------------------------------
+' Tjek for an open mapper window and as active window
+'  Status: (QA 01-08-2014)
+'---------------------------------------------------------------------------------
+Function CheckForOpenMapWindow() As Logical
+
+Dim	NumWin as Integer			'Antallet åbne vinduer
+
+	CheckForOpenMapWindow = FALSE
+	NumWin = NumWindows()
+	If NOT NumWin=0 then
+		OpenMap = WindowInfo(FrontWindow(), WIN_INFO_TYPE)
+		If OpenMap = WIN_MAPPER then
+			CheckForOpenMapWindow = TRUE
+		End If
+	End If
+
+End Function
+
+'---------------------------------------------------------------------------------
+' 	Close Application sub, og
+'   Informationsboks
+'  Status: (QA 01-08-2014)
+'---------------------------------------------------------------------------------
+Sub CloseApp
+	If TabIsOpen("BGK_kort_DB") Then
+		Close table BGK_kort_DB
+	End If
+	If TabIsOpen("BGK_Filnavne_DB") Then
+		Close table BGK_Filnavne_DB
+	End If
+	Terminate Application xProgramName + ".mbx"
+End Sub
+
+Sub About
+Dim szTitle As String, nNumSpace As Integer
+
+szTitle = xProgram + " (Programnavn: " + xProgramName + ") - v. " + xVersion
+'nNumSpace   = Abs((55 - Len(szTitle)) / 2)
+'szTitle = szTitle
+
+
+Dialog  Width 310
+   Title xProgram + " Ver. " +xVersion
+   Control GroupBox Position 10,10  Width 290   Height 20
+   Control StaticText   Position 12,17
+        Title szTitle
+
+   Control StaticText   Position 10,40
+       Title "Odense Renovation A/S, Poul Juul Hansen"
+   Control StaticText   Position 10,50
+       Title "Snapindvej 21"
+   Control StaticText   Position 10,60
+       Title "5200  Odense V"
+   Control StaticText   Position 10,70
+       Title "Tlf.: (+45) 2913 9837 "
+   Control StaticText   Position 10,80
+      Title "E-mail: pjh@odenserenovation.dk"
+   Control StaticText   Position 10,90
+      Title "Credit: Niels Lundbye-Christensen, Jammerbugt Kommune (2011)"
+   Control OKButton Width 50 Position 250,105
+
+End Sub
