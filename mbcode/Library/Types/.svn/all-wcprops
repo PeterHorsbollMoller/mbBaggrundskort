@@ -1,0 +1,203 @@
+K 25
+svn:wc:ra_dav:version-url
+V 40
+/svn/mapinfo_mblibrary/!svn/ver/61/Types
+END
+T_LABEL_SETTINGS.mb
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/mapinfo_mblibrary/!svn/ver/116/Types/T_LABEL_SETTINGS.mb
+END
+T_LABEL_SETTINGS.def
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/mapinfo_mblibrary/!svn/ver/52/Types/T_LABEL_SETTINGS.def
+END
+T_TOOLBAR.mb
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/mapinfo_mblibrary/!svn/ver/1/Types/T_TOOLBAR.mb
+END
+T_DISPLAY_OVERRIDE.def
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/mapinfo_mblibrary/!svn/ver/60/Types/T_DISPLAY_OVERRIDE.def
+END
+T_LAYER_INFO.MBO
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/mapinfo_mblibrary/!svn/ver/116/Types/T_LAYER_INFO.MBO
+END
+T_ERROR.MBO
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/mapinfo_mblibrary/!svn/ver/11/Types/T_ERROR.MBO
+END
+T_LAYER_SETTINGS.MBO
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/mapinfo_mblibrary/!svn/ver/116/Types/T_LAYER_SETTINGS.MBO
+END
+T_MI_LINE.def
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/mapinfo_mblibrary/!svn/ver/10/Types/T_MI_LINE.def
+END
+T_LABEL_SETTINGS.MBO
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/mapinfo_mblibrary/!svn/ver/116/Types/T_LABEL_SETTINGS.MBO
+END
+T_MI_POINT.def
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/mapinfo_mblibrary/!svn/ver/9/Types/T_MI_POINT.def
+END
+T_LABEL_OVERRIDE.def
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/mapinfo_mblibrary/!svn/ver/59/Types/T_LABEL_OVERRIDE.def
+END
+T_DISPLAY_OVERRIDE.MBO
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/mapinfo_mblibrary/!svn/ver/60/Types/T_DISPLAY_OVERRIDE.MBO
+END
+T_WINDOW_SIZE_POSITION.def
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/mapinfo_mblibrary/!svn/ver/11/Types/T_WINDOW_SIZE_POSITION.def
+END
+T_WINDOW_SIZE_POSITION.mb
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/mapinfo_mblibrary/!svn/ver/124/Types/T_WINDOW_SIZE_POSITION.mb
+END
+T_MI_LINE.MBO
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/mapinfo_mblibrary/!svn/ver/10/Types/T_MI_LINE.MBO
+END
+T_LAYER_SETTINGS.mb
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/mapinfo_mblibrary/!svn/ver/116/Types/T_LAYER_SETTINGS.mb
+END
+T_MI_POINT.MBO
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/mapinfo_mblibrary/!svn/ver/9/Types/T_MI_POINT.MBO
+END
+T_LABEL_OVERRIDE.MBO
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/mapinfo_mblibrary/!svn/ver/59/Types/T_LABEL_OVERRIDE.MBO
+END
+T_TOOLBAR.def
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/mapinfo_mblibrary/!svn/ver/11/Types/T_TOOLBAR.def
+END
+T_GROUP_LAYER_INFO.def
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/mapinfo_mblibrary/!svn/ver/11/Types/T_GROUP_LAYER_INFO.def
+END
+T_GROUP_LAYER_INFO.mb
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/mapinfo_mblibrary/!svn/ver/115/Types/T_GROUP_LAYER_INFO.mb
+END
+T_WINDOW_SIZE_POSITION.MBO
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/mapinfo_mblibrary/!svn/ver/11/Types/T_WINDOW_SIZE_POSITION.MBO
+END
+T_DISPLAY_OVERRIDE.mb
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/mapinfo_mblibrary/!svn/ver/60/Types/T_DISPLAY_OVERRIDE.mb
+END
+T_MI_LINE.mb
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/mapinfo_mblibrary/!svn/ver/10/Types/T_MI_LINE.mb
+END
+T_LABEL_OVERRIDE.mb
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/mapinfo_mblibrary/!svn/ver/59/Types/T_LABEL_OVERRIDE.mb
+END
+T_MI_POINT.mb
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/mapinfo_mblibrary/!svn/ver/9/Types/T_MI_POINT.mb
+END
+T_TOOLBAR.MBO
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/mapinfo_mblibrary/!svn/ver/1/Types/T_TOOLBAR.MBO
+END
+T_GROUP_LAYER_INFO.MBO
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/mapinfo_mblibrary/!svn/ver/115/Types/T_GROUP_LAYER_INFO.MBO
+END
+T_LAYER_INFO.mb
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/svn/mapinfo_mblibrary/!svn/ver/116/Types/T_LAYER_INFO.mb
+END
+T_LAYER_INFO.def
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/mapinfo_mblibrary/!svn/ver/113/Types/T_LAYER_INFO.def
+END
+T_ERROR.def
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/mapinfo_mblibrary/!svn/ver/11/Types/T_ERROR.def
+END
+T_ERROR.mb
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/mapinfo_mblibrary/!svn/ver/11/Types/T_ERROR.mb
+END
+T_LAYER_SETTINGS.def
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/mapinfo_mblibrary/!svn/ver/54/Types/T_LAYER_SETTINGS.def
+END

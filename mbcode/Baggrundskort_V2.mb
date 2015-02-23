@@ -6,9 +6,9 @@
 '    håndtering af kortværker; til håndtering af flere filer i et kortværk
 '*********************************************************************
 
-Define xProgram "Håndtering af baggrundskort"
-Define xProgramName "Baggrundskort_v2"
-Define xVersion "2.02, Build:1812-2014"
+Define xProgram	"Håndtering af baggrundskort"
+Define xProgramName	"Baggrundskort_v2"
+Define xVersion	"2.03, Build:" & Format$(Day(CurDate()), "00") & Format$(Month(CurDate()), "00") & "-" & Format$(Year(CurDate()), "0000")
 
 Type TableSpecs
 	Id As String
@@ -359,7 +359,10 @@ Dim AppPath, sID, sMenuName, sSubMenu, sTabFilePath, sTabFile, sDescription, sTa
 		Open Table AppPath & "BGK_Filnavne_DB" Hide ReadOnly
 	End If
 
-	Select * from BGK_kort_DB Order By Id Into SortBGK_kort_DB
+	Select * from BGK_kort_DB
+		Order By Id
+		Into SortBGK_kort_DB NoSelect
+
 	Fetch First from SortBGK_kort_DB
 	nItem = 1
 '--- TableInformation with database information --------------------------
@@ -374,7 +377,11 @@ Dim AppPath, sID, sMenuName, sSubMenu, sTabFilePath, sTabFile, sDescription, sTa
 									 SortBGK_kort_DB.DBKategori & "/" & SortBGK_kort_DB.DBkorttypeGruppe & ")"
 		lIsGroupLayer = SortBGK_kort_DB.DBGrupLag
 
-		Select * From BGK_Filnavne_DB Where DBfilnavnID = sTabNameId Order By SubMenuNavn Into SubSelBGK_Filnavne_DB
+		Select * From BGK_Filnavne_DB
+			Where DBfilnavnID = sTabNameId
+			Order By SubMenuNavn
+			Into SubSelBGK_Filnavne_DB NoSelect
+
 		Fetch First from SubSelBGK_Filnavne_DB
 		If lSubMenu Then 'IF menu is submenu Then find corresponding file names
 			Do While NOT EOT(SubSelBGK_Filnavne_DB)
@@ -527,13 +534,13 @@ Dim PathToMaps, sDBnavn, sDBaliasName, MapParentID, AppPath, sFileName, sFileTyp
 		If NOT TabIsOpen("Setup") Then
 			AppPath = ApplicationDirectory$()
 			Open Table AppPath + "Setup" Hide ReadOnly
-			Select * From Setup Where Entry = "CenterX" Into SelSetup
+			Select * From Setup Where Entry = "CenterX" Into SelSetup NoSelect
 			xCenter = Val(SelSetup.Value)
 			Close table SelSetup
-			Select * From Setup Where Entry = "CenterY" Into SelSetup
+			Select * From Setup Where Entry = "CenterY" Into SelSetup NoSelect
 			yCenter = Val(SelSetup.Value)
 			Close table SelSetup
-			Select * From Setup Where Entry = "NewMapScale" Into SelSetup
+			Select * From Setup Where Entry = "NewMapScale" Into SelSetup NoSelect
 			Mapscale = Val(SelSetup.Value)
 			Close table "Setup"
 			'Print xCenter & ", " & yCenter
@@ -579,7 +586,10 @@ Dim PathToMaps, sDBnavn, sDBaliasName, MapParentID, AppPath, sFileName, sFileTyp
 		Run Command "Run Application " & Chr$(34) & PathToMaps & sFileName & ".wor" & Chr$(34)
 	Else
 		If Not lIsSubMenu Then
-			Select * from BGK_Filnavne_DB Where DBfilnavnID = MapParentID Into SubselFilDB
+			Select * from BGK_Filnavne_DB
+				Where DBfilnavnID = MapParentID
+				Into SubselFilDB NoSelect
+
 			'nmRows = TableInfo(SubselFilDB, TAB_INFO_NROWS) 'New tables to open
 			nItems=0
 			Fetch First from SubselFilDB
@@ -593,6 +603,7 @@ Dim PathToMaps, sDBnavn, sDBaliasName, MapParentID, AppPath, sFileName, sFileTyp
 
 				End If
 				If Not TabIsOpen(msNameLayer) Then
+					'Print "Leder efter " & BibliotekLayer
 					Open Table BibliotekLayer As msNamelayer Interactive
 				End If
 				Redim arrGLayers(nItems)
